@@ -1,4 +1,4 @@
-name: Static Build for aestest
+name: Static Build for aestest with cmkr
 
 on:
   push:
@@ -16,72 +16,40 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install Chocolatey
+    - name: Set up Chocolatey
       shell: powershell
       run: |
         Set-ExecutionPolicy Bypass -Scope Process -Force
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 
-    - name: Install Strawberry Perl and NASM
+    - name: Install Dependencies with Chocolatey
       shell: powershell
       run: |
-        choco install strawberryperl nasm -y
+        choco install cmake -y
+        choco install ninja -y  # Ninja is commonly used with cmkr for efficient builds
+        choco install qt6 -y    # Installs Qt 6 development tools
 
-    - name: Verify NASM Installation
+    - name: Download cmkr
       run: |
-        C:\ProgramData\chocolatey\lib\nasm\tools\win64\nasm.exe -v || echo "NASM not found"
+        Invoke-WebRequest -Uri https://github.com/build-cmkr/cmkr/releases/latest/download/cmkr-windows.zip -OutFile cmkr.zip
+        Expand-Archive -Path cmkr.zip -DestinationPath .
+        Move-Item -Path cmkr\cmkr.exe -Destination .\cmkr.exe
 
-    - name: Download and Extract OpenSSL 3.4.0
-      run: |
-        Invoke-WebRequest -Uri https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -OutFile openssl.tar.gz
-        tar -xzf openssl.tar.gz
-
-    - name: Set up Visual Studio Environment and Build OpenSSL 3.4.0
+    - name: Set up Visual Studio environment
       shell: cmd
       run: |
-        REM Locate and call vcvars64.bat to set up Visual Studio environment
-        for /f "tokens=*" %%i in ('"C:\ProgramData\chocolatey\bin\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
+        REM Use vswhere to locate and set up Visual Studio environment for MSVC
+        for /f "tokens=*" %%i in ('"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
         call "%VCVARSPATH%"
-        set PATH=C:\ProgramData\chocolatey\lib\nasm\tools\win64;C:\Strawberry\perl\bin;%PATH%
-        cd openssl-3.4.0
-        perl Configure VC-WIN64A no-shared no-zlib --prefix=C:/Lib/OpenSSL340-static
-        if exist Makefile (
-          nmake
-          nmake install
-        ) else (
-          echo "Makefile not found, configuration failed."
-          exit /b 1
-        )
 
-    - name: Download and Extract Qt 6.5.0
+    - name: Configure and Generate Build Files with cmkr
       run: |
-        Invoke-WebRequest -Uri https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip -OutFile qt.zip
-        tar -xf qt.zip
-
-    - name: Build and Install Static Qt 6.5.0
-      shell: cmd
-      run: |
-        call "%VCVARSPATH%"
-        cd qt-everywhere-src-6.5.0
-        configure -static -release -nomake examples -nomake tests -prefix C:/Lib/Qt650-static
-        nmake
-        nmake install
-
-    - name: Configure CMake with Static Libraries
-      run: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release \
-                  -DOPENSSL_ROOT_DIR=C:/Lib/OpenSSL340-static \
-                  -DOPENSSL_USE_STATIC_LIBS=TRUE \
-                  -DCMAKE_PREFIX_PATH=C:/Lib/Qt650-static \
-                  -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug> # Use /MT flag for static runtime
+        .\cmkr.exe configure  # Uses cmkr to generate CMake build files with Ninja as the build tool
 
     - name: Build Project
       run: |
-        cd build
-        cmake --build . --config Release
+        .\cmkr.exe build  # Builds the project using the cmkr-generated Ninja configuration
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
