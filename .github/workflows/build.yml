@@ -26,9 +26,9 @@ jobs:
 
     - name: Download and Set Up NASM
       run: |
-        Invoke-WebRequest -Uri https://www.nasm.us/pub/nasm/releasebuilds/2.16/win64/nasm-2.16.01-win64.zip -OutFile nasm.zip
+        Invoke-WebRequest -Uri https://github.com/netwide-assembler/nasm/releases/download/2.16.01/nasm-2.16.01-win64.zip -OutFile nasm.zip
         Expand-Archive -Path nasm.zip -DestinationPath C:\nasm
-        move C:\nasm\nasm-2.16.01\nasm.exe C:\nasm\nasm.exe
+        Move-Item C:\nasm\nasm-2.16.01\nasm.exe C:\nasm\nasm.exe
       env:
         PATH: C:\nasm;%PATH%
 
