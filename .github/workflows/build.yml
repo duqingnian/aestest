@@ -45,15 +45,14 @@ jobs:
     - name: Set up Visual Studio Environment and Build OpenSSL 3.4.0
       shell: cmd
       run: |
-        REM Set up Visual Studio environment for `nmake`
-        "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat > temp.bat
-        call temp.bat
+        REM Locate and call vcvars64.bat to set up Visual Studio environment
+        for /f "tokens=*" %%i in ('"C:\ProgramData\chocolatey\bin\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
+        call "%VCVARSPATH%"
+        set PATH=C:\nasm;C:\Strawberry\perl\bin;%PATH%
         cd openssl-3.4.0
         perl Configure VC-WIN64A no-shared no-zlib --prefix=C:/Lib/OpenSSL340-static
         nmake
         nmake install
-      env:
-        PATH: C:/nasm;C:\Strawberry\perl\bin;%PATH%
 
     - name: Download and Extract Qt 6.5.0
       run: |
@@ -63,7 +62,7 @@ jobs:
     - name: Build and Install Static Qt 6.5.0
       shell: cmd
       run: |
-        call temp.bat
+        call "%VCVARSPATH%"
         cd qt-everywhere-src-6.5.0
         configure -static -release -nomake examples -nomake tests -prefix C:/Lib/Qt650-static
         nmake
