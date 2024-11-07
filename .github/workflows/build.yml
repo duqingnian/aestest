@@ -16,22 +16,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install Chocolatey
+    - name: Install Strawberry Perl with Chocolatey
       shell: powershell
       run: |
         Set-ExecutionPolicy Bypass -Scope Process -Force
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-        $env:PATH += ";$([System.Environment]::GetEnvironmentVariable('ProgramData'))\chocolatey\bin"
+        choco install strawberryperl -y
 
-    - name: Install Strawberry Perl and NASM with Chocolatey
+    - name: Download and Set Up NASM
       run: |
-        C:\ProgramData\chocolatey\bin\choco install strawberryperl -y
-        C:\ProgramData\chocolatey\bin\choco install nasm -y
+        Invoke-WebRequest -Uri https://www.nasm.us/pub/nasm/releasebuilds/2.16/win64/nasm-2.16.01-win64.zip -OutFile nasm.zip
+        Expand-Archive -Path nasm.zip -DestinationPath C:\nasm
+        move C:\nasm\nasm-2.16.01\nasm.exe C:\nasm\nasm.exe
+      env:
+        PATH: C:\nasm;%PATH%
 
     - name: Verify NASM Installation
       run: |
-        C:\ProgramData\chocolatey\bin\nasm.exe -v || echo "NASM not found"
+        C:\nasm\nasm.exe -v || echo "NASM not found"
       
     - name: Download and Extract OpenSSL 3.4.0
       run: |
@@ -44,7 +47,7 @@ jobs:
         REM Locate and call vcvars64.bat to set up Visual Studio environment
         for /f "tokens=*" %%i in ('"C:\ProgramData\chocolatey\bin\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
         call "%VCVARSPATH%"
-        set PATH=C:\ProgramData\chocolatey\bin;C:\Strawberry\perl\bin;%PATH%
+        set PATH=C:\nasm;C:\Strawberry\perl\bin;%PATH%
         cd openssl-3.4.0
         perl Configure VC-WIN64A no-shared no-zlib --prefix=C:/Lib/OpenSSL340-static
         if exist Makefile (
