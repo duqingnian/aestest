@@ -28,7 +28,12 @@ jobs:
       run: |
         choco install cmake -y
         choco install ninja -y  # Ninja is commonly used with cmkr for efficient builds
-        choco install qt6 -y    # Installs Qt 6 development tools
+
+    - name: Download and Extract Qt 6.5.0
+      run: |
+        Invoke-WebRequest -Uri https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip -OutFile qt.zip
+        Expand-Archive -Path qt.zip -DestinationPath C:\Qt
+        echo "Qt 6.5.0 extracted to C:\Qt"
 
     - name: Download cmkr
       run: |
@@ -45,7 +50,7 @@ jobs:
 
     - name: Configure and Generate Build Files with cmkr
       run: |
-        .\cmkr.exe configure  # Uses cmkr to generate CMake build files with Ninja as the build tool
+        .\cmkr.exe configure -DCMAKE_PREFIX_PATH="C:\Qt\qt-everywhere-src-6.5.0"  # Set Qt installation path for cmkr
 
     - name: Build Project
       run: |
