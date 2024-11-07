@@ -37,6 +37,10 @@ jobs:
       env:
         PATH: C:/nasm;%PATH%
 
+    - name: Verify NASM Installation
+      run: |
+        C:/nasm/nasm -v
+
     - name: Download and Extract OpenSSL 3.4.0
       run: |
         Invoke-WebRequest -Uri https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -OutFile openssl.tar.gz
@@ -51,8 +55,13 @@ jobs:
         set PATH=C:\nasm;C:\Strawberry\perl\bin;%PATH%
         cd openssl-3.4.0
         perl Configure VC-WIN64A no-shared no-zlib --prefix=C:/Lib/OpenSSL340-static
-        nmake
-        nmake install
+        if exist Makefile (
+          nmake
+          nmake install
+        ) else (
+          echo "Makefile not found, configuration failed."
+          exit /b 1
+        )
 
     - name: Download and Extract Qt 6.5.0
       run: |
