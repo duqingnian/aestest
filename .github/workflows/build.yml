@@ -1,0 +1,56 @@
+name: Static Build for aestest
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Download and Extract OpenSSL 3.4.0
+      run: |
+        curl -L -o openssl.zip https://www.openssl.org/source/openssl-3.4.0.zip
+        tar -xf openssl.zip
+        cd openssl-3.4.0
+        perl Configure VC-WIN64A no-shared no-zlib --prefix=C:/Lib/OpenSSL340-static
+        nmake
+        nmake install
+
+    - name: Build and Install Static Qt 6.5.0
+      run: |
+        curl -L -o qt.zip https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip
+        tar -xf qt.zip
+        cd qt-everywhere-src-6.5.0
+        configure -static -release -nomake examples -nomake tests -prefix C:/Lib/Qt650-static
+        nmake
+        nmake install
+
+    - name: Configure CMake with Static Libraries
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release \
+                  -DOPENSSL_ROOT_DIR=C:/Lib/OpenSSL340-static \
+                  -DOPENSSL_USE_STATIC_LIBS=TRUE \
+                  -DCMAKE_PREFIX_PATH=C:/Lib/Qt650-static \
+                  -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug> # Use /MT flag for static runtime
+
+    - name: Build Project
+      run: |
+        cd build
+        cmake --build . --config Release
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: aestest-static-build
+        path: build/Release/aestest.exe
