@@ -1,0 +1,89 @@
+#include "dialog.h"
+#include "./ui_dialog.h"
+
+#include <QByteArray>
+#include <QCryptographicHash>
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+#include <iostream>
+
+Dialog::Dialog(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::Dialog)
+{
+    ui->setupUi(this);
+}
+
+Dialog::~Dialog()
+{
+    delete ui;
+}
+
+
+// Encryption function
+QString Dialog::aes256Encrypt(const QString &str)
+{
+    AES_KEY aesKey;
+    AES_set_encrypt_key(reinterpret_cast<const unsigned char *>(key.data()), 256, &aesKey);
+
+    QByteArray data = str.toUtf8();
+    QByteArray encryptedData;
+    encryptedData.resize(data.size());
+
+    int num = 0;  // Reset num to 0 for each encryption operation
+    QByteArray ivCopy = iv;  // Use a copy of the IV to ensure the original IV remains unchanged
+
+    AES_cfb128_encrypt(reinterpret_cast<const unsigned char *>(data.data()),
+                       reinterpret_cast<unsigned char *>(encryptedData.data()),
+                       data.size(), &aesKey,
+                       reinterpret_cast<unsigned char *>(ivCopy.data()), &num,
+                       AES_ENCRYPT);
+
+    // Convert to Base64 for easy storage/display
+    return QString::fromLatin1(encryptedData.toBase64());
+}
+
+// Decryption function
+QString Dialog::aes256Decrypt(const QString &str)
+{
+    QByteArray encryptedData = QByteArray::fromBase64(str.toLatin1());
+
+    AES_KEY aesKey;
+    AES_set_encrypt_key(reinterpret_cast<const unsigned char *>(key.data()), 256, &aesKey); // Using the same key setup as encryption
+
+    QByteArray decryptedData;
+    decryptedData.resize(encryptedData.size());
+
+    int num = 0;  // Reset num to 0 for each decryption operation
+    QByteArray ivCopy = iv;  // Use a copy of the IV
+
+    AES_cfb128_encrypt(reinterpret_cast<const unsigned char *>(encryptedData.data()),
+                       reinterpret_cast<unsigned char *>(decryptedData.data()),
+                       encryptedData.size(), &aesKey,
+                       reinterpret_cast<unsigned char *>(ivCopy.data()), &num,
+                       AES_DECRYPT);
+
+    // Convert decrypted data back to QString
+    return QString::fromUtf8(decryptedData);
+}
+
+
+// Slot for encode button
+void Dialog::on_btn_encode_clicked()
+{
+    QString txt = ui->editA->toPlainText();
+    if("" != txt)
+    {
+        ui->editB->setPlainText(this->aes256Encrypt(txt));
+    }
+}
+
+// Slot for decode button
+void Dialog::on_btn_decode_clicked()
+{
+    QString encoded_string = ui->editB->toPlainText();
+    if (!encoded_string.isEmpty())
+    {
+        ui->editC->setPlainText(this->aes256Decrypt(encoded_string));
+    }
+}
