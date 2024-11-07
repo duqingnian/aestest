@@ -19,9 +19,10 @@ jobs:
     - name: Download and Extract NASM
       run: |
         Invoke-WebRequest -Uri https://www.nasm.us/pub/nasm/releasebuilds/2.16/nasm-2.16.zip -OutFile nasm.zip
-        tar -xf nasm.zip -C C:/nasm --strip-components=1
+        Expand-Archive -Path nasm.zip -DestinationPath C:/nasm
       env:
         PATH: C:/nasm;%PATH%
+
 
     - name: Download and Extract OpenSSL 3.4.0
       run: |
