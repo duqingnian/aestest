@@ -16,16 +16,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up NASM
+    - name: Download and Extract NASM
       run: |
-        curl -L -o nasm-2.15.05-installer.exe https://www.nasm.us/pub/nasm/releasebuilds/2.15.05/win64/nasm-2.15.05-installer.exe
-        ./nasm-2.15.05-installer.exe /S /D=C:\nasm
+        Invoke-WebRequest -Uri https://www.nasm.us/pub/nasm/releasebuilds/2.16/nasm-2.16.zip -OutFile nasm.zip
+        tar -xf nasm.zip -C C:/nasm --strip-components=1
       env:
-        PATH: C:\nasm;%PATH%
+        PATH: C:/nasm;%PATH%
 
     - name: Download and Extract OpenSSL 3.4.0
       run: |
-        curl -L -o openssl.tar.gz https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz
+        Invoke-WebRequest -Uri https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -OutFile openssl.tar.gz
         tar -xzf openssl.tar.gz
 
     - name: Build OpenSSL 3.4.0
@@ -39,11 +39,11 @@ jobs:
         nmake
         nmake install
       env:
-        PATH: C:\nasm;%PATH%
+        PATH: C:/nasm;%PATH%
 
     - name: Build and Install Static Qt 6.5.0
       run: |
-        curl -L -o qt.zip https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip
+        Invoke-WebRequest -Uri https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip -OutFile qt.zip
         tar -xf qt.zip
         cd qt-everywhere-src-6.5.0
         configure -static -release -nomake examples -nomake tests -prefix C:/Lib/Qt650-static
