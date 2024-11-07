@@ -18,8 +18,8 @@ jobs:
 
     - name: Download and Extract OpenSSL 3.4.0
       run: |
-        curl -L -o openssl.zip https://www.openssl.org/source/openssl-3.4.0.zip
-        tar -xf openssl.zip
+        curl -L -o openssl.tar.gz https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz
+        tar -xzf openssl.tar.gz
         cd openssl-3.4.0
         perl Configure VC-WIN64A no-shared no-zlib --prefix=C:/Lib/OpenSSL340-static
         nmake
