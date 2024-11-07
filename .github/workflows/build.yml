@@ -29,10 +29,14 @@ jobs:
         Invoke-WebRequest -Uri https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -OutFile openssl.tar.gz
         tar -xzf openssl.tar.gz
 
-    - name: Build OpenSSL 3.4.0
+    - name: Install Strawberry Perl
+      run: |
+        choco install strawberryperl -y
+
+    - name: Set up Visual Studio Environment and Build OpenSSL 3.4.0
       shell: cmd
       run: |
-        # Set up Visual Studio environment for `nmake`
+        REM Set up Visual Studio environment for `nmake`
         "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat > temp.bat
         call temp.bat
         cd openssl-3.4.0
@@ -40,7 +44,7 @@ jobs:
         nmake
         nmake install
       env:
-        PATH: C:/nasm;%PATH%
+        PATH: C:\nasm;C:\Strawberry\perl\bin;%PATH%
 
     - name: Build and Install Static Qt 6.5.0
       run: |
