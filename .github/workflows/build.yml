@@ -34,11 +34,13 @@ jobs:
       run: |
         Invoke-WebRequest -Uri https://www.nasm.us/pub/nasm/releasebuilds/2.16/nasm-2.16.zip -OutFile nasm.zip
         Expand-Archive -Path nasm.zip -DestinationPath C:\nasm
+        dir C:\nasm   # List contents of C:\nasm to check for nasm.exe
       env:
         PATH: C:\nasm;%PATH%
 
     - name: Verify NASM Installation
       run: |
+        dir C:\nasm
         C:\nasm\nasm.exe -v || echo "NASM not found"
       
     - name: Download and Extract OpenSSL 3.4.0
