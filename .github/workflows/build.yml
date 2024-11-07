@@ -23,15 +23,16 @@ jobs:
       env:
         PATH: C:/nasm;%PATH%
 
+    - name: Install Strawberry Perl
+      run: |
+        choco install strawberryperl -y
+      env:
+        PATH: C:\Strawberry\perl\bin;%PATH%
 
     - name: Download and Extract OpenSSL 3.4.0
       run: |
         Invoke-WebRequest -Uri https://github.com/openssl/openssl/releases/download/openssl-3.4.0/openssl-3.4.0.tar.gz -OutFile openssl.tar.gz
         tar -xzf openssl.tar.gz
-
-    - name: Install Strawberry Perl
-      run: |
-        choco install strawberryperl -y
 
     - name: Set up Visual Studio Environment and Build OpenSSL 3.4.0
       shell: cmd
@@ -44,12 +45,17 @@ jobs:
         nmake
         nmake install
       env:
-        PATH: C:\nasm;C:\Strawberry\perl\bin;%PATH%
+        PATH: C:/nasm;C:\Strawberry\perl\bin;%PATH%
 
-    - name: Build and Install Static Qt 6.5.0
+    - name: Download and Extract Qt 6.5.0
       run: |
         Invoke-WebRequest -Uri https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip -OutFile qt.zip
         tar -xf qt.zip
+
+    - name: Build and Install Static Qt 6.5.0
+      shell: cmd
+      run: |
+        call temp.bat
         cd qt-everywhere-src-6.5.0
         configure -static -release -nomake examples -nomake tests -prefix C:/Lib/Qt650-static
         nmake
