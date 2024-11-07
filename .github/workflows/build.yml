@@ -30,7 +30,7 @@ jobs:
 
     - name: Verify NASM Installation
       run: |
-        nasm -v || echo "NASM not found"
+        C:\ProgramData\chocolatey\lib\nasm\tools\win64\nasm.exe -v || echo "NASM not found"
 
     - name: Download and Extract OpenSSL 3.4.0
       run: |
@@ -43,7 +43,7 @@ jobs:
         REM Locate and call vcvars64.bat to set up Visual Studio environment
         for /f "tokens=*" %%i in ('"C:\ProgramData\chocolatey\bin\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
         call "%VCVARSPATH%"
-        set PATH=C:\Strawberry\perl\bin;%PATH%
+        set PATH=C:\ProgramData\chocolatey\lib\nasm\tools\win64;C:\Strawberry\perl\bin;%PATH%
         cd openssl-3.4.0
         perl Configure VC-WIN64A no-shared no-zlib --prefix=C:/Lib/OpenSSL340-static
         if exist Makefile (
