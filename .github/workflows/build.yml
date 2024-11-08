@@ -16,24 +16,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Check CMake Version
-      run: |
-        cmake --version
-
-    - name: Install OpenSSL with Chocolatey
+    - name: Install vcpkg
       shell: powershell
       run: |
-        choco install openssl -y
+        git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+        C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
 
-    - name: Verify OpenSSL Installation
+    - name: Install OpenSSL with vcpkg
       shell: powershell
       run: |
-        if (Test-Path -Path "C:\Program Files\OpenSSL-Win64\include\openssl") {
-          Write-Host "OpenSSL headers found."
-        } else {
-          Write-Host "OpenSSL headers not found."
-          exit 1
-        }
+        C:\vcpkg\vcpkg.exe install openssl:x64-windows
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
@@ -45,8 +37,8 @@ jobs:
       shell: cmd
       run: |
         cmake -B build -G "Visual Studio 17 2022" -A x64 ^
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
           -DCMAKE_PREFIX_PATH="%Qt6_DIR%" ^
-          -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL-Win64" ^
           -DOPENSSL_USE_STATIC_LIBS=TRUE .
 
     - name: Build Project
