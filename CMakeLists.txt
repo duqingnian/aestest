@@ -1,71 +1,74 @@
-name: Static Build for aestest with CMake
+cmake_minimum_required(VERSION 3.16)
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+project(aestest VERSION 0.1 LANGUAGES CXX)
 
-jobs:
-  build:
-    runs-on: windows-latest
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-    - name: Cache Chocolatey Packages
-      uses: actions/cache@v3
-      with:
-        path: C:\ProgramData\chocolatey\lib
-        key: ${{ runner.os }}-choco-cache
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
-    - name: Set up Chocolatey
-      if: steps.cache.outputs.cache-hit != 'true'
-      shell: powershell
-      run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+set(OPENSSL_ROOT_DIR "C:/Lib/OpenSSL340")
+set(OPENSSL_USE_STATIC_LIBS FALSE)
+find_package(OpenSSL REQUIRED)
 
-    - name: Install Dependencies with Chocolatey
-      shell: powershell
-      run: |
-        choco install cmake -y
-        choco install ninja -y  # Ninja for efficient builds
+set(PROJECT_SOURCES
+        main.cpp
+        dialog.cpp
+        dialog.h
+        dialog.ui
+)
 
-    - name: Cache Qt 6.5.0
-      uses: actions/cache@v3
-      with:
-        path: C:\Qt\qt-everywhere-src-6.5.0
-        key: static-qt650-cache
+if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    qt_add_executable(aestest
+        MANUAL_FINALIZATION
+        ${PROJECT_SOURCES}
+    )
+# Define target properties for Android with Qt 6 as:
+#    set_property(TARGET aestest APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
+#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
+# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
+else()
+    if(ANDROID)
+        add_library(aestest SHARED
+            ${PROJECT_SOURCES}
+        )
+# Define properties for Android with Qt 5 after find_package() calls as:
+#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
+    else()
+        add_executable(aestest
+            ${PROJECT_SOURCES}
+        )
+    endif()
+endif()
 
-    - name: Download and Extract Qt 6.5.0
-      if: steps.qt-cache.outputs.cache-hit != 'true'
-      run: |
-        Invoke-WebRequest -Uri https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip -OutFile qt.zip
-        Expand-Archive -Path qt.zip -DestinationPath C:\Qt
-        echo "Qt 6.5.0 extracted to C:\Qt"
+target_link_libraries(aestest PRIVATE Qt${QT_VERSION_MAJOR}::Widgets OpenSSL::SSL OpenSSL::Crypto)
 
-    - name: Set up Visual Studio environment
-      shell: cmd
-      run: |
-        REM Use vswhere to locate and set up Visual Studio environment for MSVC
-        for /f "tokens=*" %%i in ('"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
-        call "%VCVARSPATH%"
+# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
+# If you are developing for iOS or macOS you should consider setting an
+# explicit, fixed bundle identifier manually though.
+if(${QT_VERSION} VERSION_LESS 6.1.0)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.aestest)
+endif()
+set_target_properties(aestest PROPERTIES
+    ${BUNDLE_ID_OPTION}
+    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE TRUE
+    WIN32_EXECUTABLE TRUE
+)
 
-    - name: Configure CMake
-      run: |
-        cmake -B build -G "Ninja" -DCMAKE_PREFIX_PATH="C:\Qt\qt-everywhere-src-6.5.0" .
+include(GNUInstallDirs)
+install(TARGETS aestest
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
-    - name: Build Project
-      run: |
-        cmake --build build
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: aestest-static-build
-        path: build/Release/aestest.exe
+if(QT_VERSION_MAJOR EQUAL 6)
+    qt_finalize_executable(aestest)
+endif()

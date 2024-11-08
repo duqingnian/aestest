@@ -1,4 +1,4 @@
-name: Static Build for aestest with cmkr
+name: Build aestest with precompiled Qt
 
 on:
   push:
@@ -16,78 +16,44 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Cache Chocolatey Packages
-      uses: actions/cache@v3
-      with:
-        path: C:\ProgramData\chocolatey\lib
-        key: ${{ runner.os }}-choco-cache
-
-    - name: Set up Chocolatey
-      if: steps.cache.outputs.cache-hit != 'true'
-      shell: powershell
-      run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
-        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-
     - name: Install Dependencies with Chocolatey
       shell: powershell
       run: |
-        choco install cmake -y
-        choco install ninja -y  # Ninja is commonly used with cmkr for efficient builds
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+        choco install ninja -y
+        choco install openssl -y
 
-    - name: Cache Qt 6.5.0
+    - name: Download Qt Online Installer
+      run: |
+        Invoke-WebRequest -Uri https://download.qt.io/official_releases/online_installers/qt-unified-windows-x86-online.exe -OutFile qt-installer.exe
+
+    - name: Cache Qt Installation
       uses: actions/cache@v3
+      id: qt-cache
       with:
-        path: C:\Qt\qt-everywhere-src-6.5.0
-        key: static-qt650-cache
+        path: C:\Qt\6.5.0\msvc2019_64
+        key: ${{ runner.os }}-qt-6.5.0-msvc2019_64
 
-    - name: Download and Extract Qt 6.5.0
+    - name: Install Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
       run: |
-        Invoke-WebRequest -Uri https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip -OutFile qt.zip
-        Expand-Archive -Path qt.zip -DestinationPath C:\Qt
-        echo "Qt 6.5.0 extracted to C:\Qt"
+        .\qt-installer.exe --quiet --accept-licenses --accept-obligations --no-default-installations --platform minimal --script qt-install-script.qs
 
-    - name: Cache cmkr
-      uses: actions/cache@v3
-      with:
-        path: cmkr.exe
-        key: ${{ runner.os }}-cmkr-v0.2.35
-
-    - name: Download cmkr
-      if: steps.cmkr-cache.outputs.cache-hit != 'true'
+    - name: Set Qt Environment Variable
       run: |
-        Invoke-WebRequest -Uri https://github.com/build-cpp/cmkr/releases/download/v0.2.35/cmkr-windows.zip -OutFile cmkr.zip
-        Expand-Archive -Path cmkr.zip -DestinationPath .
-        
-        # 检查解压后的文件位置并移动
-        if (Test-Path -Path .\cmkr\cmkr.exe) {
-          Move-Item -Path .\cmkr\cmkr.exe -Destination .\cmkr.exe
-        } elseif (Test-Path -Path .\cmkr.exe) {
-          Write-Host "cmkr.exe already in the correct location."
-        } else {
-          Write-Host "cmkr.exe not found after extraction."
-          exit 1
-        }
+        echo "QT_MSVC2019_64=C:\Qt\6.5.0\msvc2019_64" >> $env:GITHUB_ENV
 
-    - name: Set up Visual Studio environment
-      shell: cmd
+    - name: Configure CMake
       run: |
-        REM Use vswhere to locate and set up Visual Studio environment for MSVC
-        for /f "tokens=*" %%i in ('"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
-        call "%VCVARSPATH%"
-
-    - name: Generate Build Files with cmkr
-      run: |
-        .\cmkr.exe gen -DCMAKE_PREFIX_PATH="C:\Qt\qt-everywhere-src-6.5.0"  # Set Qt installation path for cmkr
+        cmake -B build -G "Ninja" -DCMAKE_PREFIX_PATH="$env:QT_MSVC2019_64" -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL-Win64" .
 
     - name: Build Project
       run: |
-        .\cmkr.exe build  # Builds the project using the cmkr-generated Ninja configuration
+        cmake --build build --config Release
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: aestest-static-build
+        name: aestest-build
         path: build/Release/aestest.exe
