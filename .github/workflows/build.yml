@@ -24,13 +24,13 @@ jobs:
         choco install ninja -y
         choco install openssl -y
 
-    - name: Download Qt Online Installer from Mirror
+    - name: Download Qt Online Installer
       run: |
         Invoke-WebRequest -Uri https://download.qt.io/official_releases/online_installers/qt-unified-windows-x64-online.exe -OutFile qt-installer.exe
 
     - name: Verify qt-install-script.qs exists
       run: |
-        if (Test-Path -Path ".\qt-install-script.qs") {
+        if (Test-Path -Path ".\.github\workflows\qt-install-script.qs") {
           Write-Host "qt-install-script.qs found."
         } else {
           Write-Host "qt-install-script.qs not found."
@@ -47,7 +47,7 @@ jobs:
     - name: Install Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
       run: |
-        .\qt-installer.exe --silent --accept-licenses --accept-obligations --no-default-installations --script qt-install-script.qs
+        .\qt-installer.exe --silent --accept-licenses --accept-obligations --no-default-installations --script .\.github\workflows\qt-install-script.qs
 
     - name: Set Qt Environment Variable
       run: |
