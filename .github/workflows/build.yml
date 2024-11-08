@@ -22,35 +22,32 @@ jobs:
         Set-ExecutionPolicy Bypass -Scope Process -Force
         choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
         choco install ninja -y
-
-    - name: Cache OpenSSL Installation
-      uses: actions/cache@v3
-      id: openssl-cache
-      with:
-        path: 'C:\Program Files\OpenSSL\'
-        key: ${{ runner.os }}-openssl-3.4.0
-
-    - name: Install OpenSSL with Chocolatey
-      if: steps.openssl-cache.outputs.cache-hit != 'true'
-      shell: powershell
-      run: |
         choco install openssl -y
 
-    - name: Download Qt Online Installer
+    - name: Download Qt Online Installer from Mirror
       run: |
         Invoke-WebRequest -Uri https://download.qt.io/official_releases/online_installers/qt-unified-windows-x64-online.exe -OutFile qt-installer.exe
+
+    - name: Verify qt-install-script.qs exists
+      run: |
+        if (Test-Path -Path ".\qt-install-script.qs") {
+          Write-Host "qt-install-script.qs found."
+        } else {
+          Write-Host "qt-install-script.qs not found."
+          exit 1
+        }
 
     - name: Cache Qt Installation
       uses: actions/cache@v3
       id: qt-cache
       with:
         path: C:\Qt\6.5.0\msvc2019_64
-        key: ${{ runner.os }}-qt-6.5.0-msvc2019_64
+        key: qt-6.5.0-msvc2019_64
 
     - name: Install Qt
       if: steps.qt-cache.outputs.cache-hit != 'true'
       run: |
-        .\qt-installer.exe --quiet --accept-licenses --accept-obligations --no-default-installations --platform minimal --script qt-install-script.qs
+        .\qt-installer.exe --silent --accept-licenses --accept-obligations --no-default-installations --script qt-install-script.qs
 
     - name: Set Qt Environment Variable
       run: |
@@ -58,7 +55,7 @@ jobs:
 
     - name: Configure CMake
       run: |
-        cmake -B build -G "Ninja" -DCMAKE_PREFIX_PATH="$env:QT_MSVC2019_64" -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL" .
+        cmake -B build -G "Ninja" -DCMAKE_PREFIX_PATH="$env:QT_MSVC2019_64" -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL-Win64" .
 
     - name: Build Project
       run: |
