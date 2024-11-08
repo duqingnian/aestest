@@ -16,7 +16,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Cache Chocolatey Packages
+      uses: actions/cache@v3
+      with:
+        path: C:\ProgramData\chocolatey\lib
+        key: ${{ runner.os }}-choco-cache
+
     - name: Set up Chocolatey
+      if: steps.cache.outputs.cache-hit != 'true'
       shell: powershell
       run: |
         Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -29,17 +36,40 @@ jobs:
         choco install cmake -y
         choco install ninja -y  # Ninja is commonly used with cmkr for efficient builds
 
+    - name: Cache Qt 6.5.0
+      uses: actions/cache@v3
+      with:
+        path: C:\Qt\qt-everywhere-src-6.5.0
+        key: ${{ runner.os }}-qt-6.5.0
+
     - name: Download and Extract Qt 6.5.0
+      if: steps.qt-cache.outputs.cache-hit != 'true'
       run: |
         Invoke-WebRequest -Uri https://download.qt.io/official_releases/qt/6.5/6.5.0/single/qt-everywhere-src-6.5.0.zip -OutFile qt.zip
         Expand-Archive -Path qt.zip -DestinationPath C:\Qt
         echo "Qt 6.5.0 extracted to C:\Qt"
 
+    - name: Cache cmkr
+      uses: actions/cache@v3
+      with:
+        path: cmkr.exe
+        key: ${{ runner.os }}-cmkr-v0.2.35
+
     - name: Download cmkr
+      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         Invoke-WebRequest -Uri https://github.com/build-cpp/cmkr/releases/download/v0.2.35/cmkr-windows.zip -OutFile cmkr.zip
         Expand-Archive -Path cmkr.zip -DestinationPath .
-        Move-Item -Path cmkr\cmkr.exe -Destination .\cmkr.exe
+        
+        # 检查解压后的文件位置并移动
+        if (Test-Path -Path .\cmkr\cmkr.exe) {
+          Move-Item -Path .\cmkr\cmkr.exe -Destination .\cmkr.exe
+        } elseif (Test-Path -Path .\cmkr.exe) {
+          Write-Host "cmkr.exe already in the correct location."
+        } else {
+          Write-Host "cmkr.exe not found after extraction."
+          exit 1
+        }
 
     - name: Set up Visual Studio environment
       shell: cmd
