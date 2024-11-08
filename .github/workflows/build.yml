@@ -23,7 +23,7 @@ jobs:
     - name: Download and Install OpenSSL
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL-3_1_1.msi -OutFile OpenSSL.msi
+        Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL-3_1_2.msi -OutFile OpenSSL.msi
         Start-Process msiexec.exe -Wait -ArgumentList '/i', 'OpenSSL.msi', '/qn', 'INSTALLDIR="C:\OpenSSL"'
 
     - name: Verify OpenSSL Installation
