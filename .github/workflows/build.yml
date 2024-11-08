@@ -37,7 +37,7 @@ jobs:
 
     - name: Download cmkr
       run: |
-        Invoke-WebRequest -Uri https://github.com/build-cmkr/cmkr/releases/latest/download/cmkr-windows.zip -OutFile cmkr.zip
+        Invoke-WebRequest -Uri https://github.com/build-cpp/cmkr/releases/download/v0.2.35/cmkr-windows.zip -OutFile cmkr.zip
         Expand-Archive -Path cmkr.zip -DestinationPath .
         Move-Item -Path cmkr\cmkr.exe -Destination .\cmkr.exe
 
