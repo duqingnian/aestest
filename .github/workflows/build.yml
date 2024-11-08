@@ -40,7 +40,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: C:\Qt\qt-everywhere-src-6.5.0
-        key: ${{ runner.os }}-qt-6.5.0
+        key: static-qt650-cache
 
     - name: Download and Extract Qt 6.5.0
       if: steps.qt-cache.outputs.cache-hit != 'true'
