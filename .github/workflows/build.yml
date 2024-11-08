@@ -20,16 +20,15 @@ jobs:
       run: |
         cmake --version
 
-    - name: Download and Install OpenSSL
+    - name: Install OpenSSL with Chocolatey
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL-3_1_2.msi -OutFile OpenSSL.msi
-        Start-Process msiexec.exe -Wait -ArgumentList '/i', 'OpenSSL.msi', '/qn', 'INSTALLDIR="C:\OpenSSL"'
+        choco install openssl.light -y
 
     - name: Verify OpenSSL Installation
       shell: powershell
       run: |
-        if (Test-Path -Path "C:\OpenSSL\include\openssl") {
+        if (Test-Path -Path "C:\Program Files\OpenSSL-Win64\include\openssl") {
           Write-Host "OpenSSL headers found."
         } else {
           Write-Host "OpenSSL headers not found."
@@ -47,7 +46,7 @@ jobs:
       run: |
         cmake -B build -G "Visual Studio 17 2022" -A x64 ^
           -DCMAKE_PREFIX_PATH="%Qt6_DIR%" ^
-          -DOPENSSL_ROOT_DIR="C:\OpenSSL" ^
+          -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL-Win64" ^
           -DOPENSSL_USE_STATIC_LIBS=TRUE .
 
     - name: Build Project
