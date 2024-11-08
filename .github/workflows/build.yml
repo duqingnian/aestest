@@ -24,40 +24,19 @@ jobs:
         choco install ninja -y
         choco install openssl -y
 
-    - name: Download Qt Online Installer
-      run: |
-        Invoke-WebRequest -Uri https://download.qt.io/official_releases/online_installers/qt-unified-windows-x64-online.exe -OutFile qt-installer.exe
-
-    - name: Verify qt-install-script.qs exists
-      run: |
-        if (Test-Path -Path ".\.github\workflows\qt-install-script.qs") {
-          Write-Host "qt-install-script.qs found."
-        } else {
-          Write-Host "qt-install-script.qs not found."
-          exit 1
-        }
-
-    - name: Cache Qt Installation
-      uses: actions/cache@v3
-      id: qt-cache
-      with:
-        path: C:\Qt\6.5.0\msvc2019_64
-        key: qt-6.5.0-msvc2019_64
-
     - name: Install Qt
-      if: steps.qt-cache.outputs.cache-hit != 'true'
-      run: |
-        .\qt-installer.exe --silent --accept-licenses --accept-obligations --no-default-installations --script .\.github\workflows\qt-install-script.qs
-
-    - name: Set Qt Environment Variable
-      run: |
-        echo "QT_MSVC2019_64=C:\Qt\6.5.0\msvc2019_64" >> $env:GITHUB_ENV
+      uses: jurplel/install-qt-action@v2
+      with:
+        version: '6.5.0'
+        arch: 'win64_msvc2019_64'
 
     - name: Configure CMake
+      shell: cmd
       run: |
-        cmake -B build -G "Ninja" -DCMAKE_PREFIX_PATH="$env:QT_MSVC2019_64" -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL-Win64" .
+        cmake -B build -G "Ninja" -DCMAKE_PREFIX_PATH="%Qt6_DIR%" -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL-Win64" .
 
     - name: Build Project
+      shell: cmd
       run: |
         cmake --build build --config Release
 
