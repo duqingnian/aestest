@@ -16,31 +16,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up CMake
-      uses: actions/setup-cmake@v3
-      with:
-        cmake-version: '3.27.6'  # 指定所需的 CMake 版本
+    - name: Check CMake Version
+      run: |
+        cmake --version
 
     - name: Download and Install OpenSSL
       shell: powershell
       run: |
         Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL-3_1_1.msi -OutFile OpenSSL.msi
-        Start-Process msiexec.exe -Wait -ArgumentList '/i', 'OpenSSL.msi', '/qn', 'INSTALLDIR="C:\Program Files\OpenSSL-Win64"'
+        Start-Process msiexec.exe -Wait -ArgumentList '/i', 'OpenSSL.msi', '/qn', 'INSTALLDIR="C:\OpenSSL"'
 
     - name: Verify OpenSSL Installation
       shell: powershell
       run: |
-        if (Test-Path -Path "C:\Program Files\OpenSSL-Win64\include\openssl") {
+        if (Test-Path -Path "C:\OpenSSL\include\openssl") {
           Write-Host "OpenSSL headers found."
         } else {
           Write-Host "OpenSSL headers not found."
           exit 1
         }
-
-    - name: List OpenSSL Directory (Debug)
-      shell: powershell
-      run: |
-        Get-ChildItem "C:\Program Files\OpenSSL-Win64" -Recurse
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v2
@@ -53,10 +47,7 @@ jobs:
       run: |
         cmake -B build -G "Visual Studio 17 2022" -A x64 ^
           -DCMAKE_PREFIX_PATH="%Qt6_DIR%" ^
-          -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL-Win64" ^
-          -DOPENSSL_INCLUDE_DIR="C:/Program Files/OpenSSL-Win64/include" ^
-          -DOPENSSL_CRYPTO_LIBRARY="C:/Program Files/OpenSSL-Win64/lib/libcrypto.lib" ^
-          -DOPENSSL_SSL_LIBRARY="C:/Program Files/OpenSSL-Win64/lib/libssl.lib" ^
+          -DOPENSSL_ROOT_DIR="C:\OpenSSL" ^
           -DOPENSSL_USE_STATIC_LIBS=TRUE .
 
     - name: Build Project
@@ -68,4 +59,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: aestest-build
-        path: build/Release/aestest.exe
+        path: build\Release\aestest.exe
