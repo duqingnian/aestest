@@ -23,7 +23,7 @@ jobs:
     - name: Install OpenSSL with Chocolatey
       shell: powershell
       run: |
-        choco install openssl.light -y
+        choco install openssl -y
 
     - name: Verify OpenSSL Installation
       shell: powershell
