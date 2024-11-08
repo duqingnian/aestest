@@ -56,7 +56,7 @@ jobs:
         key: ${{ runner.os }}-cmkr-v0.2.35
 
     - name: Download cmkr
-      if: steps.cache.outputs.cache-hit != 'true'
+      if: steps.cmkr-cache.outputs.cache-hit != 'true'
       run: |
         Invoke-WebRequest -Uri https://github.com/build-cpp/cmkr/releases/download/v0.2.35/cmkr-windows.zip -OutFile cmkr.zip
         Expand-Archive -Path cmkr.zip -DestinationPath .
@@ -78,9 +78,9 @@ jobs:
         for /f "tokens=*" %%i in ('"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find VC\Auxiliary\Build\vcvars64.bat') do set VCVARSPATH=%%i
         call "%VCVARSPATH%"
 
-    - name: Configure and Generate Build Files with cmkr
+    - name: Generate Build Files with cmkr
       run: |
-        .\cmkr.exe configure -DCMAKE_PREFIX_PATH="C:\Qt\qt-everywhere-src-6.5.0"  # Set Qt installation path for cmkr
+        .\cmkr.exe gen -DCMAKE_PREFIX_PATH="C:\Qt\qt-everywhere-src-6.5.0"  # Set Qt installation path for cmkr
 
     - name: Build Project
       run: |
